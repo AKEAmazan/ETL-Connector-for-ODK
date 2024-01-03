@@ -33,7 +33,7 @@ def main(parameters, arguments):
         server=parameters.server,
         port=parameters.port,
         endpoint=ENDPOINT)
-    print("Connecting to: %s" % hide_password(address))
+    print(f"Connecting to: {hide_password(address)}")
 
     server = xmlrpc.client.ServerProxy(address, verbose=VERBOSE)
 
@@ -41,18 +41,18 @@ def main(parameters, arguments):
         with open(arguments[0], 'rb') as handle:
             plugin_id, version_id = server.plugin.upload(
                 xmlrpc.client.Binary(handle.read()))
-        print("Plugin ID: %s" % plugin_id)
-        print("Version ID: %s" % version_id)
+        print(f"Plugin ID: {plugin_id}")
+        print(f"Version ID: {version_id}")
     except xmlrpc.client.ProtocolError as err:
         print("A protocol error occurred")
-        print("URL: %s" % hide_password(err.url, 0))
-        print("HTTP/HTTPS headers: %s" % err.headers)
+        print(f"URL: {hide_password(err.url, 0)}")
+        print(f"HTTP/HTTPS headers: {err.headers}")
         print("Error code: %d" % err.errcode)
-        print("Error message: %s" % err.errmsg)
+        print(f"Error message: {err.errmsg}")
     except xmlrpc.client.Fault as err:
         print("A fault occurred")
         print("Fault code: %d" % err.faultCode)
-        print("Fault string: %s" % err.faultString)
+        print(f"Fault string: {err.faultString}")
 
 
 def hide_password(url, start=6):
@@ -66,10 +66,7 @@ def hide_password(url, start=6):
     """
     start_position = url.find(':', start) + 1
     end_position = url.find('@')
-    return "%s%s%s" % (
-        url[:start_position],
-        '*' * (end_position - start_position),
-        url[end_position:])
+    return f"{url[:start_position]}{'*' * (end_position - start_position)}{url[end_position:]}"
 
 
 if __name__ == "__main__":
@@ -98,13 +95,10 @@ if __name__ == "__main__":
     if not options.username:
         # interactive mode
         username = getpass.getuser()
-        print("Please enter user name [%s] :" % username, end=' ')
+        print(f"Please enter user name [{username}] :", end=' ')
 
         res = input()
-        if res != "":
-            options.username = res
-        else:
-            options.username = username
+        options.username = res if res != "" else username
     if not options.password:
         # interactive mode
         options.password = getpass.getpass()

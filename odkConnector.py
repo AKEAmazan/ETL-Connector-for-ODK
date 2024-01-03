@@ -52,11 +52,10 @@ class ODKConnector:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        locale = QSettings().value('locale/userLocale')[:2]
         locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'ODKConnector_{}.qm'.format(locale))
+            self.plugin_dir, 'i18n', f'ODKConnector_{locale}.qm'
+        )
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -72,8 +71,8 @@ class ODKConnector:
         self.first_start = None
 
         # project global variables
-        self.keysList = list()
-        self.dataList = list()
+        self.keysList = []
+        self.dataList = []
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -214,11 +213,6 @@ class ODKConnector:
         self.dlg.show()
         # Run the dialog event loop
         result = self.dlg.exec_()
-        # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass
 
 #======================FUNCTIONS===========================================
     #Slot functions
@@ -235,16 +229,25 @@ class ODKConnector:
             data = rq.get(url, auth = (user,pwd))
             #print(data)
             if data.status_code == 200:
-                self.dlg.connectionResult.setText('<span style=\" color: #006400;\">%s</span>' % ("Connection sucessful with code : "+ str(data.status_code)))
+                self.dlg.connectionResult.setText(
+                    '<span style=\" color: #006400;\">%s</span>'
+                    % f"Connection sucessful with code : {data.status_code}"
+                )
             else:
-                self.dlg.connectionResult.setText('<span style=\" color: #ff0000;\">%s</span>' % ("Connection failed with code : "+ str(data.status_code)))
+                self.dlg.connectionResult.setText(
+                    '<span style=\" color: #ff0000;\">%s</span>'
+                    % f"Connection failed with code : {data.status_code}"
+                )
         except Exception as e:
-            self.dlg.connectionResult.setText('<span style=\" color: #ff0000;\">%s</span>' % ("Connection faild with error message : "+ str(e)))
+            self.dlg.connectionResult.setText(
+                '<span style=\" color: #ff0000;\">%s</span>'
+                % f"Connection faild with error message : {str(e)}"
+            )
 
     def previewJsonData(self):
         #global keysList #list containing the keys (column names of the data)
         #global dataList #List containing the row data in form of lists
-        self.dataList = list() #contains the data in a list
+        self.dataList = []
         # clear all widgets
         self.dlg.jsonText.clear()
         self.dlg.dataTable.clear()
@@ -255,10 +258,10 @@ class ODKConnector:
         #self.dlg.adminColumn.clear()
         # function to preview the data in the Qplaintextwidget and the qtablewiget
         jsonData = data.json() #load the data into a json data structure
-        self.keysList = list() # get the keys of the data
+        self.keysList = []
         # get all possible keys in the json file. the looping ensures that all fields are captured when the length of the dicts are not equal
         for i in jsonData:
-            self.dlg.jsonText.appendPlainText("----" + str(list(i.values())) + "\n")
+            self.dlg.jsonText.appendPlainText(f"----{list(i.values())}" + "\n")
             for j in i.keys():
                 if j in self.keysList:
                     continue
@@ -269,7 +272,7 @@ class ODKConnector:
         #loop through the data and display the rows in the QPlaintextwidget
         for i in jsonData:
             #self.dlg.jsonText.appendPlainText(str(list(i.values())) + "\n") # display the data in the QPlaintextwiget
-            li = list() # list to contain row data making sure they have the same number of inputs as the number of comlumns to avoid data mismatch in the output file
+            li = []
 
             for j in self.keysList:
                 if j in i.keys():
@@ -280,28 +283,26 @@ class ODKConnector:
 
         #populate the QTablewiget
         self.columnCount = self.dlg.dataTable.columnCount()
-        for i in range(0,self.columnCount):
+        for _ in range(0,self.columnCount):
             self.dlg.dataTable.removeColumn(0)
-        
+
         for i in range(0, len(self.keysList)): # create columns objects in the table before populating them with values
             self.dlg.dataTable.insertColumn(i)
 
         self.columns = self.dlg.dataTable.setHorizontalHeaderLabels(self.keysList) #display the columns
         self.dlg.dataTable.setRowCount(20) #set the length of the table rows
-        row = 0 #row number
-        for d in jsonData[0:20]:# loop through the json data and populate the qtablewiget
-            column = 0
+        for row, d in enumerate(jsonData[:20]):# loop through the json data and populate the qtablewiget
             rowKeys = d.keys()
-            for key in self.keysList:
+            for column, key in enumerate(self.keysList):
                 if key in rowKeys:
                     self.dlg.dataTable.setItem(row,column, QTableWidgetItem(str(d[key])))
-                    column += 1
                 else:
                     self.dlg.dataTable.setItem(row,column, QTableWidgetItem(""))
-                    column += 1
-            row += 1
         #Populate qplaintext and qdropdown wigets with data
-        self.dlg.tableSize.setText('<span style=\" color: #006400;\">%s</span>' %("Table size : " + str(len(self.dataList)) + " Rows x " + str(len(self.keysList)) + " Columns"))
+        self.dlg.tableSize.setText(
+            '<span style=\" color: #006400;\">%s</span>'
+            % f"Table size : {len(self.dataList)} Rows x {len(self.keysList)} Columns"
+        )
         self.dlg.latitude.addItems(self.keysList)
         self.dlg.longitude.addItems(self.keysList)
         self.dlg.geometry.addItems(self.keysList)
@@ -357,14 +358,14 @@ class ODKConnector:
         for field in self.keysList:
             self.dlg.jsonText.appendPlainText(field)
             featureFields.append(QgsField(field.replace("/","_"), QVariant.String))
-        
+
         crs = crs #QgsProject.instance().crs()
         transform_context = QgsProject.instance().transformContext()
         save_options = QgsVectorFileWriter.SaveVectorOptions()
-        if format == "shp":
-            save_options.driverName = "ESRI Shapefile" #output format of featureclass ex: "ESRI Shapefile"
-        elif format == "gpkg":
+        if format == "gpkg":
             save_options.driverName = "GPKG"
+        elif format == "shp":
+            save_options.driverName = "ESRI Shapefile" #output format of featureclass ex: "ESRI Shapefile"
         save_options.fileEncoding = "UTF-8"
 
         writer = QgsVectorFileWriter.create(filePath, featureFields, QgsWkbTypes.Point, crs, transform_context, save_options)
@@ -376,13 +377,12 @@ class ODKConnector:
         fet = QgsFeature()
 
         for row in self.dataList:
-            i = 0
             row2 = row.copy()
             self.dlg.jsonText.appendPlainText(str(row2))
             if self.dlg.singleGeo.isChecked():# do when a single column geometry is checked
                 geomCol = self.dlg.geometry.currentText()
                 index = self.keysList.index(geomCol)
-                if type(row[index]) == type(list()):
+                if type(row[index]) == type([]):
                     fet.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(row[index][1]),float(row[index][0]))))
                     #self.dlg.jsonText.appendPlainText("I was here before.................LOL")
                     #self.dlg.jsonText.appendPlainText(str(float(row[index][1])))
@@ -394,20 +394,18 @@ class ODKConnector:
                 lat = self.dlg.latitude.currentText()
                 long = self.dlg.longitude.currentText()
                 fet.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(lat),float(long))))
-            
-            for d in row2:
-                if type(d) == type(list()):
-                    row2[i] = "[]"
-                i += 1
 
+            for i, d in enumerate(row2):
+                if type(d) == type([]):
+                    row2[i] = "[]"
             fet.setAttributes(row2)
             #self.dlg.jsonText.appendPlainText(str(fet.geometry()))
             #self.dlg.jsonText.appendPlainText(str(fet[1]))
             writer.addFeature(fet)
-            #if writer.NoError == 0:
-                #self.dlg.jsonText.appendPlainText(str(writer))
-            #else:
-                #self.dlg.jsonText.appendPlainText("There was an error in the writer")
+                #if writer.NoError == 0:
+                    #self.dlg.jsonText.appendPlainText(str(writer))
+                #else:
+                    #self.dlg.jsonText.appendPlainText("There was an error in the writer")
 
         # delete the writer to flush features to disk
         del writer
@@ -417,7 +415,7 @@ class ODKConnector:
             #self.dlg.jsonText.appendPlainText("No features created")
 
     def createCSV(self, path, filename):
-        file = os.path.join(os.path.dirname(path), filename + ".csv")
+        file = os.path.join(os.path.dirname(path), f"{filename}.csv")
         responsejson = data.json()
         with open(file, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=self.keysList)
@@ -482,12 +480,11 @@ class ODKConnector:
             # feature object
             feat = QgsFeature(fields)
             for row in self.dataList:
-                i = 0
                 row2 = row.copy()
                 if self.dlg.singleGeo.isChecked():# do when a single column geometry is checked
                     geomCol = self.dlg.geometry.currentText()
                     index = self.keysList.index(geomCol)
-                    if type(row[index]) == type(list()):
+                    if type(row[index]) == type([]):
                         feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(row[index][1]),float(row[index][0]))))
                     else:
                         feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(row[index].split(" ")[1]),float(row[index].split(" ")[0]))))
@@ -495,15 +492,13 @@ class ODKConnector:
                     lat = self.dlg.latitude.currentText()
                     long = self.dlg.longitude.currentText()
                     feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(lat),float(long))))
-                
-                for d in row2:
-                    if type(d) == type(list()):
-                        row2[i] = "[]"
-                    i += 1
 
+                for i, d in enumerate(row2):
+                    if type(d) == type([]):
+                        row2[i] = "[]"
                 feat.setAttributes(row2)
                 selectedLayer.dataProvider().addFeature(feat)
-            
+
         selectedLayer.commitChanges()
         self.dlg.jsonText.appendPlainText("Data Updated")
     
@@ -520,9 +515,7 @@ class ODKConnector:
             self.dlg.processingMsg.setText("Processing...")
             self.dlg.progressBar.setValue(10)
             selectedLayer = self.dlg.layerToUpdate.currentLayer()
-            if self.dlg.updateLayer.isChecked():
-                pass
-            else:
+            if not self.dlg.updateLayer.isChecked():
                 outFile = self.dlg.outputFile.text() #output file path
                 fileName = os.path.basename(outFile).split(".")[0]#output path basename
                 format = os.path.basename(outFile).split(".")[1]
